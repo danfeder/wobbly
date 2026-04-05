@@ -4,7 +4,7 @@ import { loadPuzzle, createStructureFromPuzzle, settleAndReadback } from '../sha
 import { getLauncherState, setAnchor, startDrag, updateDrag, releaseDrag } from './launcher.js';
 import { getState, setState, STATES, advanceShot, setRoundOver, resetState, addLandedBall, getLandedBalls, setPrecariousness, incrementRoundCount, setIntegrity, resetRoundCount } from './state.js';
 import { runStressTest, getIntegrityTier } from './stress-test.js';
-import { initDebugPanel, getDebugState } from './debug-panel.js';
+import { initDebugPanel, getDebugState, logShot, resetShotLog } from './debug-panel.js';
 import {
   SETTLE_VELOCITY_THRESHOLD,
   SETTLE_FRAMES,
@@ -54,6 +54,7 @@ function loadLevel() {
   setAnchor(currentPuzzle.launcher.x, currentPuzzle.launcher.y);
   currentBall = null;
   quietFrames = 0;
+  resetShotLog();
 }
 
 function getWorldPos(e) {
@@ -186,6 +187,10 @@ function runStabilityCheck() {
   if (getDebugState().showLogs) console.log('STABILITY:', { pieces: count, avgDisplacement, precariousness });
   setPrecariousness(precariousness);
 
+  // Store last values so callers can log them
+  runStabilityCheck._lastAvgDisplacement = avgDisplacement;
+  runStabilityCheck._lastPrecariousness = precariousness;
+
   // Still build the snapshot for integrity scoring on win
   const bodySnapshot = bodies.map(b => ({
     type: b.stoneType,
@@ -213,13 +218,13 @@ function updateSettling() {
 
   if (state.current === STATES.FLYING) {
     if (checkBallOffScreen()) {
-      if (getDebugState().noFail) { if (getDebugState().showLogs) console.log('DEBUG: miss (skipped)'); runStabilityCheck(); advanceShot(); return; }
+      if (getDebugState().noFail) { if (getDebugState().showLogs) console.log('DEBUG: miss (skipped)'); runStabilityCheck(); logShot('miss', runStabilityCheck._lastAvgDisplacement, runStabilityCheck._lastPrecariousness); advanceShot(); return; }
       setRoundOver('miss');
       return;
     }
 
     if (checkBallKnockoff()) {
-      if (getDebugState().noFail) { if (getDebugState().showLogs) console.log('DEBUG: knockoff (skipped)'); runStabilityCheck(); advanceShot(); return; }
+      if (getDebugState().noFail) { if (getDebugState().showLogs) console.log('DEBUG: knockoff (skipped)'); runStabilityCheck(); logShot('knockoff', runStabilityCheck._lastAvgDisplacement, runStabilityCheck._lastPrecariousness); advanceShot(); return; }
       setRoundOver('knockoff');
       return;
     }
@@ -247,20 +252,21 @@ function updateSettling() {
     // Settled (or timed out) — determine result
     if (quietFrames >= SETTLE_FRAMES || flightFrames >= MAX_FLIGHT_FRAMES) {
       if (checkTopple()) {
-        if (getDebugState().noFail) { if (getDebugState().showLogs) console.log('DEBUG: topple (skipped)'); runStabilityCheck(); advanceShot(); return; }
+        if (getDebugState().noFail) { if (getDebugState().showLogs) console.log('DEBUG: topple (skipped)'); runStabilityCheck(); logShot('topple', runStabilityCheck._lastAvgDisplacement, runStabilityCheck._lastPrecariousness); advanceShot(); return; }
         setRoundOver('topple');
       } else if (checkBallKnockoff()) {
-        if (getDebugState().noFail) { if (getDebugState().showLogs) console.log('DEBUG: knockoff (skipped)'); runStabilityCheck(); advanceShot(); return; }
+        if (getDebugState().noFail) { if (getDebugState().showLogs) console.log('DEBUG: knockoff (skipped)'); runStabilityCheck(); logShot('knockoff', runStabilityCheck._lastAvgDisplacement, runStabilityCheck._lastPrecariousness); advanceShot(); return; }
         setRoundOver('knockoff');
       } else {
         const result = checkBallResult();
         if (result === 'miss') {
-          if (getDebugState().noFail) { if (getDebugState().showLogs) console.log('DEBUG: miss (skipped)'); runStabilityCheck(); advanceShot(); return; }
+          if (getDebugState().noFail) { if (getDebugState().showLogs) console.log('DEBUG: miss (skipped)'); runStabilityCheck(); logShot('miss', runStabilityCheck._lastAvgDisplacement, runStabilityCheck._lastPrecariousness); advanceShot(); return; }
           setRoundOver('miss');
         } else {
           // Ball landed successfully — track it
           addLandedBall(currentBall);
           const bodySnapshot = runStabilityCheck();
+          logShot('landed', runStabilityCheck._lastAvgDisplacement, runStabilityCheck._lastPrecariousness);
 
           let advanced;
           if (getDebugState().unlimitedShots) {

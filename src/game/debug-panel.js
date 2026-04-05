@@ -13,8 +13,35 @@ const debugState = {
 let panel = null;
 let visible = false;
 
+let shotNumber = 0;
+
 export function getDebugState() {
   return debugState;
+}
+
+export function logShot(outcome, avgDisplacement, precariousness) {
+  shotNumber++;
+  const el = document.getElementById('dbg-shot-entries');
+  if (!el) return;
+
+  const stability = Math.round((1 - precariousness) * 100);
+  const color = stability >= 70 ? '#5cb85c' : stability >= 40 ? '#f0ad4e' : '#d9534f';
+  const tag = outcome === 'landed' ? '<span style="color:#5cb85c">landed</span>'
+    : outcome === 'miss' ? '<span style="color:#888">miss</span>'
+    : outcome === 'topple' ? '<span style="color:#d9534f">topple</span>'
+    : '<span style="color:#d9534f">knockoff</span>';
+
+  const entry = document.createElement('div');
+  entry.style.marginBottom = '2px';
+  entry.innerHTML = `#${shotNumber} ${tag} — <span style="color:${color}">${stability}%</span> <span style="color:#666">(avg ${avgDisplacement.toFixed(2)}m)</span>`;
+  el.appendChild(entry);
+  el.scrollTop = el.scrollHeight;
+}
+
+export function resetShotLog() {
+  shotNumber = 0;
+  const el = document.getElementById('dbg-shot-entries');
+  if (el) el.innerHTML = '';
 }
 
 export function initDebugPanel() {
@@ -104,6 +131,11 @@ export function initDebugPanel() {
     <div class="slider-row">
       <span>Integrity max disp <span class="slider-value" id="dbg-heavy-disp-val">8.0</span></span>
       <input type="range" id="dbg-heavy-disp" min="2.0" max="20.0" step="0.5" value="8.0">
+    </div>
+
+    <div id="dbg-shot-log" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 6px;">
+      <div style="color: #999; font-size: 11px; margin-bottom: 4px;">Shot log</div>
+      <div id="dbg-shot-entries" style="font-size: 11px; max-height: 120px; overflow-y: auto;"></div>
     </div>
 
     <div class="hint">Press \` to toggle this panel</div>
