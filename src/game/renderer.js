@@ -344,6 +344,12 @@ function drawHUD(gameState) {
     }
   }
 
+  if (current === 'SETTLING') {
+    drawSettlingIndicator();
+  } else {
+    settlingAnimFrame = 0;
+  }
+
   // Result messages
   if (current === 'ROUND_OVER' || current === 'WIN') {
     // Dim overlay
@@ -377,4 +383,22 @@ function drawSubMessage(text) {
   ctx.font = '18px monospace';
   ctx.textAlign = 'center';
   ctx.fillText(text, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 20);
+}
+
+let settlingAnimFrame = 0;
+
+function drawSettlingIndicator() {
+  settlingAnimFrame++;
+
+  // Three small dots that pulse in sequence
+  const baseX = CANVAS_WIDTH / 2 - 12;
+  const baseY = CANVAS_HEIGHT - 25;
+
+  for (let i = 0; i < 3; i++) {
+    const dotPulse = 0.4 + 0.6 * Math.abs(Math.sin((settlingAnimFrame - i * 8) * 0.05));
+    ctx.beginPath();
+    ctx.arc(baseX + i * 12, baseY, 3, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(200, 200, 180, ${dotPulse * 0.6})`;
+    ctx.fill();
+  }
 }
