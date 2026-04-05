@@ -14,6 +14,9 @@ const state = {
   result: null, // 'miss', 'topple', 'win'
   landedBalls: [],
   precariousness: 0,
+  roundCount: 1,
+  integrityScore: null,
+  integrityTier: null,
 };
 
 export function getState() {
@@ -56,10 +59,26 @@ export function setRoundOver(reason) {
   state.result = reason;
 }
 
+export function incrementRoundCount() {
+  state.roundCount++;
+}
+
+export function setIntegrity(score, tier) {
+  state.integrityScore = score;
+  state.integrityTier = tier;
+}
+
+export function resetRoundCount() {
+  state.roundCount = 1;
+}
+
 export function resetState() {
   state.current = STATES.AIMING;
   state.shotNumber = 1;
   state.result = null;
   state.landedBalls = [];
   state.precariousness = 0;
+  state.integrityScore = null;
+  state.integrityTier = null;
+  // Note: do NOT reset roundCount here — it persists across retries
 }

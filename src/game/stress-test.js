@@ -79,3 +79,9 @@ export function runStressTest(bodies, { intensity = 'light' } = {}) {
 
   return { precariousness, totalDisplacement };
 }
+
+export function getIntegrityTier(score) {
+  if (score >= 70) return 'Rock Solid';
+  if (score >= 40) return 'Holding Together';
+  return 'Barely Standing';
+}

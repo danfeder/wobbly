@@ -2,8 +2,8 @@ import { createWorld, getStructureBodies, getBallBodies, stepWorld, applyContact
 import { initRenderer, render, toWorld } from './renderer.js';
 import { loadPuzzle, createStructureFromPuzzle, settleAndReadback } from '../shared/puzzle-loader.js';
 import { getLauncherState, setAnchor, startDrag, updateDrag, releaseDrag } from './launcher.js';
-import { getState, setState, STATES, advanceShot, setRoundOver, resetState, addLandedBall, getLandedBalls, setPrecariousness } from './state.js';
-import { runStressTest } from './stress-test.js';
+import { getState, setState, STATES, advanceShot, setRoundOver, resetState, addLandedBall, getLandedBalls, setPrecariousness, incrementRoundCount, setIntegrity, resetRoundCount } from './state.js';
+import { runStressTest, getIntegrityTier } from './stress-test.js';
 import {
   SETTLE_VELOCITY_THRESHOLD,
   SETTLE_FRAMES,
@@ -66,6 +66,11 @@ function onMouseDown(e) {
 
   // Handle retry/restart clicks
   if (state.current === STATES.ROUND_OVER || state.current === STATES.WIN) {
+    if (state.current === STATES.ROUND_OVER) {
+      incrementRoundCount();
+    } else {
+      resetRoundCount();
+    }
     resetState();
     loadLevel();
     return;
@@ -228,7 +233,14 @@ function updateSettling() {
           const stressResult = runStressTest(bodySnapshot, { intensity: 'light' });
           setPrecariousness(stressResult.precariousness);
 
-          advanceShot();
+          const advanced = advanceShot();
+          if (!advanced) {
+            // We just won — run heavy stress test for integrity score
+            const integrityResult = runStressTest(bodySnapshot, { intensity: 'heavy' });
+            const score = Math.round((1 - integrityResult.precariousness) * 100);
+            const tier = getIntegrityTier(score);
+            setIntegrity(score, tier);
+          }
         }
       }
     }
