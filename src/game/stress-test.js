@@ -16,8 +16,13 @@ const CONFIGS = {
  * @param {{ intensity: 'light' | 'heavy' }} options
  * @returns {{ precariousness: number, totalDisplacement: number }}
  */
-export function runStressTest(bodies, { intensity = 'light' } = {}) {
-  const config = CONFIGS[intensity];
+export function runStressTest(bodies, { intensity = 'light', impulseOverride, maxDisplacementOverride } = {}) {
+  const base = CONFIGS[intensity];
+  const config = {
+    impulse: impulseOverride ?? base.impulse,
+    steps: base.steps,
+    maxDisplacement: maxDisplacementOverride ?? base.maxDisplacement,
+  };
 
   // Create temporary world
   const world = new World({ gravity: Vec2(0, GRAVITY) });

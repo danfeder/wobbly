@@ -4,6 +4,7 @@ import { loadPuzzle, createStructureFromPuzzle, settleAndReadback } from '../sha
 import { getLauncherState, setAnchor, startDrag, updateDrag, releaseDrag } from './launcher.js';
 import { getState, setState, STATES, advanceShot, setRoundOver, resetState, addLandedBall, getLandedBalls, setPrecariousness, incrementRoundCount, setIntegrity, resetRoundCount } from './state.js';
 import { runStressTest, getIntegrityTier } from './stress-test.js';
+import { initDebugPanel, getDebugState } from './debug-panel.js';
 import {
   SETTLE_VELOCITY_THRESHOLD,
   SETTLE_FRAMES,
@@ -15,11 +16,9 @@ import {
   BALL_RADIUS,
 } from '../shared/constants.js';
 
-// Debug mode: set to true to disable fail states (miss/topple/knockoff skip instead of ending round)
-const DEBUG_NO_FAIL = true;
-
 const canvas = document.getElementById('game-canvas');
 initRenderer(canvas);
+initDebugPanel();
 
 let currentPuzzle = null;
 let quietFrames = 0; // frames where all bodies are below velocity threshold
@@ -182,10 +181,9 @@ function runStabilityCheck() {
 
   // Use average displacement per piece so one piece flying off doesn't max the meter
   const avgDisplacement = count > 0 ? totalDisplacement / count : 0;
-  // Normalize: maxAvgDisplacement is tunable — how much avg movement = fully precarious
-  const maxAvgDisplacement = 1.5;
+  const maxAvgDisplacement = getDebugState().maxAvgDisplacement;
   const precariousness = Math.min(1, avgDisplacement / maxAvgDisplacement);
-  console.log('STABILITY:', { pieces: count, avgDisplacement, precariousness });
+  if (getDebugState().showLogs) console.log('STABILITY:', { pieces: count, avgDisplacement, precariousness });
   setPrecariousness(precariousness);
 
   // Still build the snapshot for integrity scoring on win
@@ -215,13 +213,13 @@ function updateSettling() {
 
   if (state.current === STATES.FLYING) {
     if (checkBallOffScreen()) {
-      if (DEBUG_NO_FAIL) { console.log('DEBUG: miss (skipped)'); runStabilityCheck(); advanceShot(); return; }
+      if (getDebugState().noFail) { if (getDebugState().showLogs) console.log('DEBUG: miss (skipped)'); runStabilityCheck(); advanceShot(); return; }
       setRoundOver('miss');
       return;
     }
 
     if (checkBallKnockoff()) {
-      if (DEBUG_NO_FAIL) { console.log('DEBUG: knockoff (skipped)'); runStabilityCheck(); advanceShot(); return; }
+      if (getDebugState().noFail) { if (getDebugState().showLogs) console.log('DEBUG: knockoff (skipped)'); runStabilityCheck(); advanceShot(); return; }
       setRoundOver('knockoff');
       return;
     }
@@ -249,25 +247,37 @@ function updateSettling() {
     // Settled (or timed out) — determine result
     if (quietFrames >= SETTLE_FRAMES || flightFrames >= MAX_FLIGHT_FRAMES) {
       if (checkTopple()) {
-        if (DEBUG_NO_FAIL) { console.log('DEBUG: topple (skipped)'); runStabilityCheck(); advanceShot(); return; }
+        if (getDebugState().noFail) { if (getDebugState().showLogs) console.log('DEBUG: topple (skipped)'); runStabilityCheck(); advanceShot(); return; }
         setRoundOver('topple');
       } else if (checkBallKnockoff()) {
-        if (DEBUG_NO_FAIL) { console.log('DEBUG: knockoff (skipped)'); runStabilityCheck(); advanceShot(); return; }
+        if (getDebugState().noFail) { if (getDebugState().showLogs) console.log('DEBUG: knockoff (skipped)'); runStabilityCheck(); advanceShot(); return; }
         setRoundOver('knockoff');
       } else {
         const result = checkBallResult();
         if (result === 'miss') {
-          if (DEBUG_NO_FAIL) { console.log('DEBUG: miss (skipped)'); runStabilityCheck(); advanceShot(); return; }
+          if (getDebugState().noFail) { if (getDebugState().showLogs) console.log('DEBUG: miss (skipped)'); runStabilityCheck(); advanceShot(); return; }
           setRoundOver('miss');
         } else {
           // Ball landed successfully — track it
           addLandedBall(currentBall);
           const bodySnapshot = runStabilityCheck();
 
-          const advanced = advanceShot();
+          let advanced;
+          if (getDebugState().unlimitedShots) {
+            // In unlimited mode, always go back to aiming
+            setState(STATES.AIMING);
+            advanced = true;
+          } else {
+            advanced = advanceShot();
+          }
           if (!advanced) {
             // We just won — run heavy stress test for integrity score
-            const integrityResult = runStressTest(bodySnapshot, { intensity: 'heavy' });
+            const dbg = getDebugState();
+            const integrityResult = runStressTest(bodySnapshot, {
+              intensity: 'heavy',
+              impulseOverride: dbg.heavyImpulse,
+              maxDisplacementOverride: dbg.heavyMaxDisplacement,
+            });
             const score = Math.round((1 - integrityResult.precariousness) * 100);
             const tier = getIntegrityTier(score);
             setIntegrity(score, tier);
