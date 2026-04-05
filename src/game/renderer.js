@@ -344,6 +344,11 @@ function drawHUD(gameState) {
     }
   }
 
+  // Tension meter (always visible during gameplay)
+  if (current !== 'ROUND_OVER' && current !== 'WIN') {
+    drawTensionMeter(gameState.precariousness || 0);
+  }
+
   if (current === 'SETTLING') {
     drawSettlingIndicator();
   } else {
@@ -386,6 +391,47 @@ function drawSubMessage(text) {
 }
 
 let settlingAnimFrame = 0;
+
+function drawTensionMeter(precariousness) {
+  const meterX = CANVAS_WIDTH - 30;
+  const meterY = 40;
+  const meterHeight = 120;
+  const meterWidth = 12;
+  const fillHeight = precariousness * meterHeight;
+
+  // Background
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+  ctx.fillRect(meterX - meterWidth / 2, meterY, meterWidth, meterHeight);
+
+  // Fill from bottom — green to yellow to red
+  if (fillHeight > 0) {
+    const grad = ctx.createLinearGradient(0, meterY + meterHeight, 0, meterY);
+    grad.addColorStop(0, '#5cb85c');    // green at bottom
+    grad.addColorStop(0.5, '#f0ad4e');  // yellow in middle
+    grad.addColorStop(1, '#d9534f');    // red at top
+    ctx.fillStyle = grad;
+    ctx.fillRect(
+      meterX - meterWidth / 2,
+      meterY + meterHeight - fillHeight,
+      meterWidth,
+      fillHeight,
+    );
+  }
+
+  // Border
+  ctx.strokeStyle = 'rgba(200, 200, 200, 0.3)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(meterX - meterWidth / 2, meterY, meterWidth, meterHeight);
+
+  // Label
+  ctx.fillStyle = 'rgba(200, 200, 200, 0.5)';
+  ctx.font = '10px monospace';
+  ctx.textAlign = 'center';
+  ctx.save();
+  ctx.translate(meterX, meterY + meterHeight + 14);
+  ctx.fillText('STABILITY', 0, 0);
+  ctx.restore();
+}
 
 function drawSettlingIndicator() {
   settlingAnimFrame++;

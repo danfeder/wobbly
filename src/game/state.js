@@ -13,6 +13,7 @@ const state = {
   shotNumber: 1,
   result: null, // 'miss', 'topple', 'win'
   landedBalls: [],
+  precariousness: 0,
 };
 
 export function getState() {
@@ -46,6 +47,10 @@ export function getLandedBalls() {
   return state.landedBalls;
 }
 
+export function setPrecariousness(value) {
+  state.precariousness = value;
+}
+
 export function setRoundOver(reason) {
   state.current = STATES.ROUND_OVER;
   state.result = reason;
@@ -56,4 +61,5 @@ export function resetState() {
   state.shotNumber = 1;
   state.result = null;
   state.landedBalls = [];
+  state.precariousness = 0;
 }

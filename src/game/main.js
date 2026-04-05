@@ -2,7 +2,8 @@ import { createWorld, getStructureBodies, getBallBodies, stepWorld, applyContact
 import { initRenderer, render, toWorld } from './renderer.js';
 import { loadPuzzle, createStructureFromPuzzle, settleAndReadback } from '../shared/puzzle-loader.js';
 import { getLauncherState, setAnchor, startDrag, updateDrag, releaseDrag } from './launcher.js';
-import { getState, setState, STATES, advanceShot, setRoundOver, resetState, addLandedBall, getLandedBalls } from './state.js';
+import { getState, setState, STATES, advanceShot, setRoundOver, resetState, addLandedBall, getLandedBalls, setPrecariousness } from './state.js';
+import { runStressTest } from './stress-test.js';
 import {
   SETTLE_VELOCITY_THRESHOLD,
   SETTLE_FRAMES,
@@ -207,6 +208,26 @@ function updateSettling() {
         } else {
           // Ball landed successfully — track it
           addLandedBall(currentBall);
+
+          // Run stress test to update tension indicator
+          const bodySnapshot = getStructureBodies().map(b => ({
+            type: b.stoneType,
+            x: b.getPosition().x,
+            y: b.getPosition().y,
+            angle: b.getAngle(),
+          }));
+          // Include landed balls in the stress test
+          for (const ball of getLandedBalls()) {
+            bodySnapshot.push({
+              type: 'ball',
+              x: ball.getPosition().x,
+              y: ball.getPosition().y,
+              angle: ball.getAngle(),
+            });
+          }
+          const stressResult = runStressTest(bodySnapshot, { intensity: 'light' });
+          setPrecariousness(stressResult.precariousness);
+
           advanceShot();
         }
       }
