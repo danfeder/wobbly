@@ -15,6 +15,9 @@ import {
   BALL_RADIUS,
 } from '../shared/constants.js';
 
+// Debug mode: set to true to disable fail states (miss/topple/knockoff skip instead of ending round)
+const DEBUG_NO_FAIL = true;
+
 const canvas = document.getElementById('game-canvas');
 initRenderer(canvas);
 
@@ -162,6 +165,47 @@ function checkBallKnockoff() {
   return false;
 }
 
+function runStabilityCheck() {
+  // Measure how much structure pieces have moved from their original settled positions
+  const bodies = getStructureBodies();
+  let totalDisplacement = 0;
+  let count = 0;
+  for (let i = 0; i < bodies.length; i++) {
+    const pos = bodies[i].getPosition();
+    const initial = initialStructurePositions[i];
+    if (!initial) continue;
+    const dx = pos.x - initial.x;
+    const dy = pos.y - initial.y;
+    totalDisplacement += Math.sqrt(dx * dx + dy * dy);
+    count++;
+  }
+
+  // Use average displacement per piece so one piece flying off doesn't max the meter
+  const avgDisplacement = count > 0 ? totalDisplacement / count : 0;
+  // Normalize: maxAvgDisplacement is tunable — how much avg movement = fully precarious
+  const maxAvgDisplacement = 1.5;
+  const precariousness = Math.min(1, avgDisplacement / maxAvgDisplacement);
+  console.log('STABILITY:', { pieces: count, avgDisplacement, precariousness });
+  setPrecariousness(precariousness);
+
+  // Still build the snapshot for integrity scoring on win
+  const bodySnapshot = bodies.map(b => ({
+    type: b.stoneType,
+    x: b.getPosition().x,
+    y: b.getPosition().y,
+    angle: b.getAngle(),
+  }));
+  for (const ball of getLandedBalls()) {
+    bodySnapshot.push({
+      type: 'ball',
+      x: ball.getPosition().x,
+      y: ball.getPosition().y,
+      angle: ball.getAngle(),
+    });
+  }
+  return bodySnapshot;
+}
+
 function updateSettling() {
   // During FLYING: check if ball went off-screen (immediate miss)
   const state = getState();
@@ -171,11 +215,13 @@ function updateSettling() {
 
   if (state.current === STATES.FLYING) {
     if (checkBallOffScreen()) {
+      if (DEBUG_NO_FAIL) { console.log('DEBUG: miss (skipped)'); runStabilityCheck(); advanceShot(); return; }
       setRoundOver('miss');
       return;
     }
 
     if (checkBallKnockoff()) {
+      if (DEBUG_NO_FAIL) { console.log('DEBUG: knockoff (skipped)'); runStabilityCheck(); advanceShot(); return; }
       setRoundOver('knockoff');
       return;
     }
@@ -203,35 +249,20 @@ function updateSettling() {
     // Settled (or timed out) — determine result
     if (quietFrames >= SETTLE_FRAMES || flightFrames >= MAX_FLIGHT_FRAMES) {
       if (checkTopple()) {
+        if (DEBUG_NO_FAIL) { console.log('DEBUG: topple (skipped)'); runStabilityCheck(); advanceShot(); return; }
         setRoundOver('topple');
       } else if (checkBallKnockoff()) {
+        if (DEBUG_NO_FAIL) { console.log('DEBUG: knockoff (skipped)'); runStabilityCheck(); advanceShot(); return; }
         setRoundOver('knockoff');
       } else {
         const result = checkBallResult();
         if (result === 'miss') {
+          if (DEBUG_NO_FAIL) { console.log('DEBUG: miss (skipped)'); runStabilityCheck(); advanceShot(); return; }
           setRoundOver('miss');
         } else {
           // Ball landed successfully — track it
           addLandedBall(currentBall);
-
-          // Run stress test to update tension indicator
-          const bodySnapshot = getStructureBodies().map(b => ({
-            type: b.stoneType,
-            x: b.getPosition().x,
-            y: b.getPosition().y,
-            angle: b.getAngle(),
-          }));
-          // Include landed balls in the stress test
-          for (const ball of getLandedBalls()) {
-            bodySnapshot.push({
-              type: 'ball',
-              x: ball.getPosition().x,
-              y: ball.getPosition().y,
-              angle: ball.getAngle(),
-            });
-          }
-          const stressResult = runStressTest(bodySnapshot, { intensity: 'light' });
-          setPrecariousness(stressResult.precariousness);
+          const bodySnapshot = runStabilityCheck();
 
           const advanced = advanceShot();
           if (!advanced) {

@@ -441,18 +441,19 @@ function drawTensionMeter(precariousness) {
   const meterY = 40;
   const meterHeight = 120;
   const meterWidth = 12;
-  const fillHeight = precariousness * meterHeight;
+  const stability = 1 - precariousness; // invert: full = stable, empty = precarious
+  const fillHeight = stability * meterHeight;
 
   // Background
   ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
   ctx.fillRect(meterX - meterWidth / 2, meterY, meterWidth, meterHeight);
 
-  // Fill from bottom — green to yellow to red
+  // Fill from bottom — red (low) to yellow (mid) to green (high/full)
   if (fillHeight > 0) {
     const grad = ctx.createLinearGradient(0, meterY + meterHeight, 0, meterY);
-    grad.addColorStop(0, '#5cb85c');    // green at bottom
+    grad.addColorStop(0, '#d9534f');    // red at bottom (low stability)
     grad.addColorStop(0.5, '#f0ad4e');  // yellow in middle
-    grad.addColorStop(1, '#d9534f');    // red at top
+    grad.addColorStop(1, '#5cb85c');    // green at top (high stability)
     ctx.fillStyle = grad;
     ctx.fillRect(
       meterX - meterWidth / 2,

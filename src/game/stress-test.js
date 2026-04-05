@@ -4,8 +4,8 @@ import { STONE_TYPES } from '../shared/stone-types.js';
 import { GRAVITY, BALL_RADIUS } from '../shared/constants.js';
 
 const CONFIGS = {
-  light: { impulse: 0.5, steps: 150, maxDisplacement: 5.0 },
-  heavy: { impulse: 2.0, steps: 400, maxDisplacement: 10.0 },
+  light: { impulse: 1.5, steps: 150, maxDisplacement: 4.0 },
+  heavy: { impulse: 5.0, steps: 400, maxDisplacement: 8.0 },
 };
 
 /**
