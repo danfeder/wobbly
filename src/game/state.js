@@ -12,6 +12,7 @@ const state = {
   current: STATES.AIMING,
   shotNumber: 1,
   result: null, // 'miss', 'topple', 'win'
+  landedBalls: [],
 };
 
 export function getState() {
@@ -37,6 +38,14 @@ export function advanceShot() {
   return true;
 }
 
+export function addLandedBall(ball) {
+  state.landedBalls.push(ball);
+}
+
+export function getLandedBalls() {
+  return state.landedBalls;
+}
+
 export function setRoundOver(reason) {
   state.current = STATES.ROUND_OVER;
   state.result = reason;
@@ -46,4 +55,5 @@ export function resetState() {
   state.current = STATES.AIMING;
   state.shotNumber = 1;
   state.result = null;
+  state.landedBalls = [];
 }
