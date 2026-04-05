@@ -95,6 +95,25 @@ export function initDebugPanel() {
         color: #f0ad4e;
         float: right;
       }
+      #debug-panel .tooltip {
+        display: none;
+        background: rgba(30, 30, 30, 0.95);
+        border: 1px solid #555;
+        border-radius: 4px;
+        padding: 8px;
+        color: #bbb;
+        font-size: 10px;
+        line-height: 1.4;
+        margin-top: 4px;
+        max-width: 260px;
+      }
+      #debug-panel .tooltip code {
+        color: #f0ad4e;
+        font-family: monospace;
+      }
+      #debug-panel .slider-row:hover .tooltip {
+        display: block;
+      }
       #debug-panel .hint {
         margin-top: 10px;
         color: #666;
@@ -121,16 +140,33 @@ export function initDebugPanel() {
     <div class="slider-row">
       <span>Stability sensitivity <span class="slider-value" id="dbg-max-disp-val">1.5</span></span>
       <input type="range" id="dbg-max-disp" min="0.5" max="5.0" step="0.1" value="1.5">
+      <div class="tooltip">
+        Controls the stability meter during gameplay. After each shot, each structure piece's distance from its original position is measured and averaged.<br><br>
+        <code>stability% = (1 - avgDisplacement / thisValue) * 100</code><br><br>
+        Lower = more sensitive (small shifts drain the meter).<br>
+        Higher = more forgiving (structure must really move).
+      </div>
     </div>
 
     <div class="slider-row">
       <span>Integrity impulse <span class="slider-value" id="dbg-impulse-val">5.0</span></span>
       <input type="range" id="dbg-impulse" min="1.0" max="15.0" step="0.5" value="5.0">
+      <div class="tooltip">
+        On win, a hidden copy of the structure is created and every piece is shoved sideways with this force. The sim runs 400 frames to see what survives.<br><br>
+        Lower = gentle nudge, most structures score high.<br>
+        Higher = violent shake, only sturdy structures score well.
+      </div>
     </div>
 
     <div class="slider-row">
       <span>Integrity max disp <span class="slider-value" id="dbg-heavy-disp-val">8.0</span></span>
       <input type="range" id="dbg-heavy-disp" min="2.0" max="20.0" step="0.5" value="8.0">
+      <div class="tooltip">
+        After the hidden earthquake sim, total displacement of all pieces is measured. This value sets what displacement = 0% integrity.<br><br>
+        <code>score = (1 - totalDisp / thisValue) * 100</code><br><br>
+        Tiers: <code>&ge;70</code> Rock Solid, <code>&ge;40</code> Holding Together, <code>&lt;40</code> Barely Standing.<br><br>
+        Lower = harsh grading. Higher = lenient grading.
+      </div>
     </div>
 
     <div id="dbg-shot-log" style="margin-top: 10px; border-top: 1px solid #333; padding-top: 6px;">
