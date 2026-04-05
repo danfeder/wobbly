@@ -2,7 +2,7 @@ import { createWorld, getStructureBodies, getBallBodies, stepWorld, applyContact
 import { initRenderer, render, toWorld } from './renderer.js';
 import { loadPuzzle, createStructureFromPuzzle, settleAndReadback } from '../shared/puzzle-loader.js';
 import { getLauncherState, setAnchor, startDrag, updateDrag, releaseDrag } from './launcher.js';
-import { getState, setState, STATES, advanceShot, setRoundOver, resetState } from './state.js';
+import { getState, setState, STATES, advanceShot, setRoundOver, resetState, addLandedBall, getLandedBalls } from './state.js';
 import {
   SETTLE_VELOCITY_THRESHOLD,
   SETTLE_FRAMES,
@@ -144,6 +144,18 @@ function checkBallResult() {
   return 'miss';
 }
 
+function checkBallKnockoff() {
+  const landed = getLandedBalls();
+  for (const ball of landed) {
+    const pos = ball.getPosition();
+    // Ball fell below ground level or left play area
+    if (pos.y < GROUND_Y + BALL_RADIUS * 0.5) return true;
+    const worldHalfWidth = CANVAS_WIDTH / SCALE / 2 + 5;
+    if (pos.x > worldHalfWidth || pos.x < -worldHalfWidth) return true;
+  }
+  return false;
+}
+
 function updateSettling() {
   // During FLYING: check if ball went off-screen (immediate miss)
   const state = getState();
@@ -154,6 +166,11 @@ function updateSettling() {
   if (state.current === STATES.FLYING) {
     if (checkBallOffScreen()) {
       setRoundOver('miss');
+      return;
+    }
+
+    if (checkBallKnockoff()) {
+      setRoundOver('knockoff');
       return;
     }
 
@@ -181,11 +198,15 @@ function updateSettling() {
     if (quietFrames >= SETTLE_FRAMES || flightFrames >= MAX_FLIGHT_FRAMES) {
       if (checkTopple()) {
         setRoundOver('topple');
+      } else if (checkBallKnockoff()) {
+        setRoundOver('knockoff');
       } else {
         const result = checkBallResult();
         if (result === 'miss') {
           setRoundOver('miss');
         } else {
+          // Ball landed successfully — track it
+          addLandedBall(currentBall);
           advanceShot();
         }
       }
