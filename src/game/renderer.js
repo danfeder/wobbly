@@ -358,15 +358,59 @@ function drawHUD(gameState) {
   // Result messages
   if (current === 'ROUND_OVER' || current === 'WIN') {
     // Dim overlay
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
     if (current === 'ROUND_OVER') {
-      drawCenterMessage(result === 'topple' ? 'TOPPLED!' : 'MISS!', '#c44');
-      drawSubMessage('Click to retry');
+      // Fail reason
+      let failText = 'MISS!';
+      if (result === 'topple') failText = 'TOPPLED!';
+      if (result === 'knockoff') failText = 'KNOCKED OFF!';
+      drawCenterMessage(failText, '#c44');
+
+      // Shot progress
+      drawSubMessage(`Shot ${shotNumber} of ${MAX_SHOTS}`);
+
+      // Retry prompt
+      ctx.fillStyle = '#777';
+      ctx.font = '14px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('Click to retry', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 50);
     } else {
+      // WIN screen
       drawCenterMessage('ALL LANDED!', '#5cb85c');
-      drawSubMessage('Click to play again');
+
+      // Round count
+      const roundText = gameState.roundCount === 1
+        ? 'Solved on first try!'
+        : `Solved in ${gameState.roundCount} rounds`;
+      ctx.fillStyle = '#ccc';
+      ctx.font = '18px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(roundText, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 15);
+
+      // Integrity score
+      if (gameState.integrityScore !== null && gameState.integrityScore !== undefined) {
+        const tierColor = gameState.integrityScore >= 70 ? '#5cb85c'
+          : gameState.integrityScore >= 40 ? '#f0ad4e'
+          : '#d9534f';
+        ctx.fillStyle = tierColor;
+        ctx.font = 'bold 22px monospace';
+        ctx.fillText(
+          `Structural Integrity: ${gameState.integrityScore}`,
+          CANVAS_WIDTH / 2,
+          CANVAS_HEIGHT / 2 + 50,
+        );
+        ctx.fillStyle = '#aaa';
+        ctx.font = '16px monospace';
+        ctx.fillText(gameState.integrityTier, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 75);
+      }
+
+      // Play again prompt
+      ctx.fillStyle = '#777';
+      ctx.font = '14px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('Click to play again', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 105);
     }
   }
 }
