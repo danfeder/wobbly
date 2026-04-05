@@ -5,6 +5,7 @@ const debugState = {
   noFail: true,
   showLogs: true,
   unlimitedShots: true,
+  showArc: false,
   maxAvgDisplacement: 1.5,
   heavyImpulse: 5.0,
   heavyMaxDisplacement: 8.0,
@@ -136,6 +137,10 @@ export function initDebugPanel() {
       <input type="checkbox" id="dbg-logs" checked>
       Console logging
     </label>
+    <label>
+      <input type="checkbox" id="dbg-arc">
+      Show trajectory arc
+    </label>
 
     <div class="slider-row">
       <span>Stability sensitivity <span class="slider-value" id="dbg-max-disp-val">1.5</span></span>
@@ -182,6 +187,7 @@ export function initDebugPanel() {
   bind('dbg-no-fail', 'noFail');
   bind('dbg-unlimited', 'unlimitedShots');
   bind('dbg-logs', 'showLogs');
+  bind('dbg-arc', 'showArc');
 
   // Slider bindings
   bindSlider('dbg-max-disp', 'maxAvgDisplacement', 'dbg-max-disp-val');

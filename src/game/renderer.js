@@ -1,4 +1,4 @@
-import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE, BALL_RADIUS, GROUND_MARGIN_PX, MAX_SHOTS } from '../shared/constants.js';
+import { CANVAS_WIDTH, CANVAS_HEIGHT, SCALE, BALL_RADIUS, GROUND_MARGIN_PX, MAX_SHOTS, SPEED_FACTOR, GRAVITY } from '../shared/constants.js';
 import { STONE_TYPES } from '../shared/stone-types.js';
 
 let ctx = null;
@@ -274,6 +274,34 @@ function drawSlingshot(launcher) {
   ctx.moveTo(anchor.x + 1, anchor.y);
   ctx.lineTo(rightProngX - 1, rightProngY);
   ctx.stroke();
+
+  // Trajectory arc (debug mode)
+  if (launcher.dragging && launcher.showArc) {
+    const vx = -launcher.pullX * SPEED_FACTOR;
+    const vy = -launcher.pullY * SPEED_FACTOR;
+    const startX = launcher.anchorX;
+    const startY = launcher.anchorY;
+    const dt = 1 / 60;
+    const numDots = 40;
+
+    ctx.save();
+    for (let i = 1; i <= numDots; i++) {
+      const t = i * dt * 3; // sample every 3 frames for wider spread
+      const px = startX + vx * t;
+      const py = startY + vy * t + 0.5 * GRAVITY * t * t;
+
+      // Stop if below ground
+      if (py < 0) break;
+
+      const screen = toCanvas(px, py);
+      const alpha = 0.5 * (1 - i / numDots); // fade out
+      ctx.beginPath();
+      ctx.arc(screen.x, screen.y, 2, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255, 255, 200, ${alpha})`;
+      ctx.fill();
+    }
+    ctx.restore();
+  }
 
   // If dragging, draw front elastic and ball
   if (launcher.dragging) {

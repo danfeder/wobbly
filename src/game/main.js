@@ -304,7 +304,9 @@ function loop() {
     updateSettling();
   }
 
-  render(getStructureBodies(), getBallBodies(), getLauncherState(), state);
+  const launcherWithDebug = getLauncherState();
+  launcherWithDebug.showArc = getDebugState().showArc;
+  render(getStructureBodies(), getBallBodies(), launcherWithDebug, state);
   requestAnimationFrame(loop);
 }
 
